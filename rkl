@@ -1,0 +1,8 @@
+import requests
+from bs4 import BeautifulSoup
+import openpyxl
+
+
+url = 'https://top.baidu.com/board?tab=realtime'
+response = requests.get(url)
+html = response.content
