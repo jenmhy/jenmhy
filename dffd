@@ -1,0 +1,27 @@
+# 初始化pygame
+pygame.init()
+screen = pygame.display.set_mode((WIDTH, HEIGHT))
+pygame.display.set_caption("球球大作战")
+clock = pygame.time.Clock()
+# 初始化游戏元素
+player = Ball(WIDTH // 2, HEIGHT // 2, 15, RED)
+balls = [Ball(random.randint(0, MAP_WIDTH), random.randint(0, MAP_HEIGHT), random.randint(1, 30),
+              (random.randint(0, 255), random.randint(0, 255), random.randint(0, 255))) for _ in range(ball_NUM)]
+# 主循环
+running = True
+score = 0
+while running:
+    for event in pygame.event.get():
+        if event.type == pygame.QUIT:
+            running = False
+    keys = pygame.key.get_pressed()
+    player_move(keys)
+    for ball in balls:
+        ball.move()
+        if random.randint(0, 100) < 1:  # 概率触发改变方向
+            ball.change()
+    eat_ball()
+    shoot_ball()
+    show()
+    clock.tick(60)
+pygame.quit()
