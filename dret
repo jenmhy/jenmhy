@@ -1,0 +1,23 @@
+    <!-- 轮播图,侧边栏 -->
+    <div class="index_center">
+      <!-- 轮播图 -->
+      <div class="banner">
+        <ul class="imgList">
+          <li class="item active"><a href="#"><img src="img/banner1.jpg"></a></li>
+          <li class="item"><a href="#"><img src="img/banner2.jpg"></a></li>
+          <li class="item"><a href="#"><img src="img/banner3.jpg"></a></li>
+          <li class="item"><a href="#"><img src="img/banner4.jpg"></a></li>
+          <li class="item"><a href="#"><img src="img/banner5.jpg"></a></li>
+        </ul>
+        <ul class="pointList">
+          <li class="point active" index="0"></li>
+          <li class="point" index="1"></li>
+          <li class="point" index="2"></li>
+          <li class="point" index="3"></li>
+          <li class="point" index="4"></li>
+        </ul>
+        <button type="button" class="btn" id="goPre"><img src="img/l_arr.png"></button>
+        <button type="button" class="btn" id="goNext"><img src="img/r_arr.png"></button>
+      </div>
+      <script src="js/banner.js"></script>
+
