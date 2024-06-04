@@ -1,0 +1,24 @@
+            // btn关闭
+            // 
+            this.btn关闭.Image = ((System.Drawing.Image)(resources.GetObject("btn关闭.Image")));
+            this.btn关闭.Location = new System.Drawing.Point(388, 12);
+            this.btn关闭.Name = "btn关闭";
+            this.btn关闭.Size = new System.Drawing.Size(30, 30);
+            this.btn关闭.SizeMode = System.Windows.Forms.PictureBoxSizeMode.AutoSize;
+            this.btn关闭.TabIndex = 1;
+            this.btn关闭.TabStop = false;
+            this.btn关闭.Click += new System.EventHandler(this.btn关闭_Click);
+            this.btn关闭.MouseLeave += new System.EventHandler(this.btn关闭_MouseLeave);
+            this.btn关闭.MouseMove += new System.Windows.Forms.MouseEventHandler(this.btn关闭_MouseMove);
+            // 
+            // btn最小化
+            // 
+            this.btn最小化.Image = ((System.Drawing.Image)(resources.GetObject("btn最小化.Image")));
+            this.btn最小化.Location = new System.Drawing.Point(352, 12);
+            this.btn最小化.Name = "btn最小化";
+            this.btn最小化.Size = new System.Drawing.Size(30, 30);
+            this.btn最小化.SizeMode = System.Windows.Forms.PictureBoxSizeMode.AutoSize;
+            this.btn最小化.TabIndex = 2;
+            this.btn最小化.TabStop = false;
+            // 
+   
