@@ -1,0 +1,28 @@
+/**
+ * <p>
+ * 角色表 服务类
+ * </p>
+ *
+ * @author CeaM
+ * @since 2023-01-28
+ */
+public interface ICeamSysRoleService extends IService<CeamSysRole> {
+ 
+    IPage<CeaMSysRoleVO> pageCeaMSysRoleVO(PageableDTO pageable);
+ 
+    /**
+     * 获取用户权限信息
+     * @param userId 用户信息
+     * @return 权限信息
+     */
+    Collection<SimpleGrantedAuthority> grantedAuthorities(Long userId);
+ 
+    /**
+     *
+     * @param userId 用户ID
+     * @return RoleItemVOs
+     */
+    List<RoleDTO> listByUserId(Long userId);
+ 
+    void updateMenu(CeaMSysRoleDTO roleDTO, CeamSysRole role);
+}
