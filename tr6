@@ -1,0 +1,415 @@
+<template>
+    <div class="flex-wrap flex-justify-between">
+        <div class="gobang-main">
+            <!-- {{ userdata._id }}
+            {{ gameBase }} -->
+            步数： {{ currentStep }} 我方：{{ getQi }}
+            <el-button v-if="isAdmin" @click="clearGame"> 清空游戏 </el-button>
+            <!-- 下棋区 -->
+            <game :list="gobangList" :config="config" @clickHandle="clickHandle"></game>
+
+            <!-- <el-button v-if="isGameOver && isAdmin" @click="reloadGame"> 重新开始 </el-button> -->
+        </div>
+        <!-- im区 -->
+        <Im
+            ref="imRef"
+            v-if="game_im_id"
+            :style="{ width: '440px' }"
+            :isShowLeft="false"
+            :gobang_id="gobang_id"
+            :game_im_id="game_im_id"
+            @room_baseinfo="room_baseinfo"
+            @get_game_content="get_game_content"
+            @get_gb_info="get_gb_info"
+            @del_gobang="del_gobang"
+        ></Im>
+    </div>
+</template>
+
+<script>
+import Im from '@/views/blog/im/index.vue'
+import { baseURL } from '@/plugins/config.js'
+import { get_gobang_list, post_gobang, get_gobang, del_gobang } from '@/api/data.js'
+import game from './game.vue'
+export default {
+    components: {
+        Im,
+        game,
+    },
+    data() {
+        return {
+            isGameOver: false,
+            page: 'list',
+            gameBase: {
+                _id:'',
+                status: '',
+                max: 10,
+                max_move_time: 0,
+                all_time: 0,
+                hei_user_id: '',
+                bai_user_id: '',
+                im_romm_id:''
+            },
+            gobangMembers: [], // 五子棋游戏成员列表
+
+            room_id: '',
+            gobangList: [],
+            config: {
+                type: 1, // 1为白棋 2为黑棋
+                line: 15, // 棋盘线条数
+                width: 36,
+            },
+            first: true,
+        }
+    },
+    computed: {
+        ...Vuex.mapState(['userdata']),
+        ...Vuex.mapGetters(['isAdmin']),
+        gobang_id() {
+            return this.gameBase._id
+        },
+        game_im_id() {
+            return this.gameBase.im_romm_id
+        },
+
+        // 当前步数
+        currentStep() {
+            let result = 0
+            this.gobangList.forEach((item) => {
+                item.forEach((itey) => {
+                    if (itey.step_number > 0) {
+                        result += 1
+                    }
+                })
+            })
+            return result
+        },
+        getQi() {
+            // 自己是黑棋还是白棋
+            let { _id } = this.userdata
+            if (_id == this.gameBase.bai_user_id) {
+                return '白棋'
+            }
+
+            if (_id == this.gameBase.hei_user_id) {
+                return '黑棋'
+            }
+
+            return '观众'
+        },
+        step_content() {
+            // 具体下的内容 1白字 2黑子
+            const obj = {
+                白棋: 1,
+                黑棋: 2,
+            }
+
+            return obj[this.getQi] || 0
+        },
+    },
+    created() {
+        this.init()
+    },
+
+    methods: {
+        del_gobang() {
+            // 清空数据
+            // this.gobangList = []
+            // this.isGameOver = false
+            // this.gameBase = {
+            //     status: '',
+            //     max: 10,
+            //     max_move_time: 0,
+            //     all_time: 0,
+            //     hei_user_id: '',
+            //     bai_user_id: '',
+            // }
+
+            location.reload()
+        },
+        clearGame() {
+            this.$confirm('确定要清空游戏吗？')
+                .then((res) => {
+                    this.$refs.imRef.send_msg({
+                        room_id: this.room_id,
+                        specialType: 3,
+                        gobang_id: this.gobang_id,
+                    })
+                })
+                .catch(() => {})
+        },
+        // 黑棋先行，一人一只下
+        isShould() {
+            let { currentStep, gobangList, step_content } = this
+            // 黑棋个数
+            let heiNumber = 0
+
+            // 白棋个数
+            let baiNumber = 0
+
+            // 遍历棋盘
+            gobangList.forEach((aaa) => {
+                aaa.forEach((item) => {
+                    if (item.step_content == 1) {
+                        baiNumber += 1
+                    }
+
+                    if (item.step_content == 2) {
+                        heiNumber += 1
+                    }
+                })
+            })
+
+            // 判断现在下的步数的奇数还是偶数
+            let isOdd = currentStep % 2
+
+            if (step_content === 1) {
+                // 白棋
+                return isOdd === 1
+            }
+
+            if (step_content === 2) {
+                // 黑棋
+                return isOdd === 0
+            }
+        },
+
+        clickHandle({ x, y }) {
+            let {
+                step_content,
+                room_id,
+                gobang_id,
+                userdata: { _id: author_id },
+                currentStep,
+                isGameOver,
+            } = this
+
+            if (isGameOver) {
+                return this.$message.warning('游戏已结束')
+            }
+
+            // 只有棋手才能下棋
+            if (![1, 2].includes(+step_content)) return
+
+            // 判断是否该下子
+            if (!this.isShould()) {
+                return this.$message.warning('请等待对方落子')
+            }
+
+            let obj = {
+                room_id,
+                specialType: 2,
+                gobang_id,
+                gobang_member_id: author_id,
+                step_number: currentStep + 1,
+                step_content,
+                x,
+                y,
+                author_id,
+            }
+            this.$refs.imRef.send_msg(obj, () => {})
+        },
+        room_baseinfo({ gobangMembers, room_id }) {
+            this.gobangMembers = Array.isArray(gobangMembers) ? gobangMembers : []
+            this.room_id = room_id || ''
+        },
+        initConfigList() {
+            // 生成一个二维数组
+            let { line } = this.config
+            for (let i = 0; i < line; i++) {
+                this.gobangList.push([])
+                for (let j = 0; j < line; j++) {
+                    this.gobangList[i].push({
+                        x: i,
+                        y: j,
+                        step_content: 0, // 0: 空 1: 白 2: 黑
+                    })
+                }
+            }
+        },
+        async init() {
+            this.initConfigList()
+            let res = null
+            try {
+                res = await get_gobang_list()
+            } catch (err) {
+                return
+            }
+            if (res.data || this.isArray(res.data.data)) {
+                if (res.data.data.length === 0) {
+                    let res = await post_gobang({
+                        game_name: '五子棋',
+                    }).catch(() => {
+                        return {}
+                    })
+
+                    if (!res.data || !this.isObject(res.data.data)) return
+                    Object.assign(this.gameBase,res.data.data)
+                }
+                if (res.data.data.length) {
+                    Object.assign(this.gameBase,res.data.data[0])
+                }
+            }
+
+            // 获取现有的对局信息
+            get_gobang({ gobang_id: this.gobang_id })
+                .then((res) => {
+                    if (res.data && this.isArrayLength(res.data.data)) {
+                        let arr = res.data.data
+                        this.gobangList = this.gobangList.map((aaa) => {
+                            aaa = aaa.map((item) => {
+                                let { x, y } = item
+                                arr.find((itey) => {
+                                    let { step_content, step_number, gobang_member_id } = itey
+                                    if (itey.x == x + 1 && itey.y == y + 1 && step_content) {
+                                        Object.assign(item, {
+                                            step_content,
+                                            step_number,
+                                            gobang_member_id,
+                                        })
+
+                                        return true
+                                    }
+                                })
+
+                                return item
+                            })
+
+                            return aaa
+                        })
+
+                        console.log(this.gobangList)
+                    }
+                })
+                .catch(() => {})
+        },
+
+        get_game_content(row) {
+            this.gobangList = this.gobangList.map((aaa) => {
+                aaa = aaa.map((item) => {
+                    let { x, y } = item
+                    let { step_content, step_number, gobang_member_id } = row
+                    if (row.x == x + 1 && row.y == y + 1 && step_content) {
+                        Object.assign(item, {
+                            step_content,
+                            step_number,
+                            gobang_member_id,
+                        })
+                    }
+
+                    return item
+                })
+
+                return aaa
+            })
+
+            this.checkWin()
+        },
+
+        get_gb_info(row) {
+            this.gameBase = Object.assign(this.gameBase, row)
+            console.log('get_gb_info',this.gameBase)
+        },
+        // 判断是否胜利 需要知道哪种棋子胜利
+        checkWin() {
+            // if(this.first) return
+            this.first = false
+            // 判断当前棋盘是否有五子连珠
+            let { line } = this.config
+            let { gobangList: list } = this
+            let type = 0 // 0: 没有胜利 1: 白棋胜利 2: 黑棋胜利 3: 平局
+            // 判断横向
+            for (let i = 0; i < line; i++) {
+                for (let j = 0; j < line - 4; j++) {
+                    if (
+                        list[i][j].step_content !== 0 &&
+                        list[i][j].step_content === list[i][j + 1].step_content &&
+                        list[i][j].step_content === list[i][j + 2].step_content &&
+                        list[i][j].step_content === list[i][j + 3].step_content &&
+                        list[i][j].step_content === list[i][j + 4].step_content
+                    ) {
+                        type = list[i][j].step_content
+                        break
+                    }
+                }
+            }
+            // 判断纵向
+            for (let i = 0; i < line; i++) {
+                for (let j = 0; j < line - 4; j++) {
+                    if (
+                        list[j][i].step_content !== 0 &&
+                        list[j][i].step_content === list[j + 1][i].step_content &&
+                        list[j][i].step_content === list[j + 2][i].step_content &&
+                        list[j][i].step_content === list[j + 3][i].step_content &&
+                        list[j][i].step_content === list[j + 4][i].step_content
+                    ) {
+                        type = list[j][i].step_content
+
+                        break
+                    }
+                }
+            }
+            // 判断左斜
+            for (let i = 0; i < line - 4; i++) {
+                for (let j = 0; j < line - 4; j++) {
+                    if (
+                        list[i][j].step_content !== 0 &&
+                        list[i][j].step_content === list[i + 1][j + 1].step_content &&
+                        list[i][j].step_content === list[i + 2][j + 2].step_content &&
+                        list[i][j].step_content === list[i + 3][j + 3].step_content &&
+                        list[i][j].step_content === list[i + 4][j + 4].step_content
+                    ) {
+                        type = list[i][j].step_content
+                        break
+                    }
+                }
+            }
+
+            // 判断右斜
+            for (let i = 0; i < line - 4; i++) {
+                for (let j = 4; j < line; j++) {
+                    if (
+                        list[i][j].step_content !== 0 &&
+                        list[i][j].step_content === list[i + 1][j - 1].step_content &&
+                        list[i][j].step_content === list[i + 2][j - 2].step_content &&
+                        list[i][j].step_content === list[i + 3][j - 3].step_content &&
+                        list[i][j].step_content === list[i + 4][j - 4].step_content
+                    ) {
+                        type = list[i][j].step_content
+                        break
+                    }
+                }
+            }
+
+            // 判断是否平局
+            let flag = true
+            for (let i = 0; i < line; i++) {
+                for (let j = 0; j < line; j++) {
+                    if (list[i][j].step_content == 0) {
+                        flag = false
+                        break
+                    }
+                }
+            }
+
+            // 如果是平局
+            if (flag) {
+                type = 3
+            }
+
+            const obj = {
+                1: '白棋胜利',
+                2: '黑棋胜利',
+                3: '平局',
+            }
+
+            if (obj[type]) {
+                this.$message.success(obj[type])
+                this.isGameOver = true
+            }
+        },
+    },
+}
+</script>
+
+<style lang="scss" scoped></style>
